@@ -1,0 +1,18 @@
+theme = catppuccin-mocha
+font-size = 16
+mouse-hide-while-typing = true
+window-decoration = true
+# keybind = global:cmd+s=toggle_quick_terminal
+
+background = #13131d
+background-opacity = 0.8
+background-blur-radius = 20
+macos-window-shadow = false
+
+#font-family = "Menlo"
+font-family = "JetBrainsMono Nerd Font Mono"
+
+#font-family = "Martian Mono"
+#font-size = 14
+#adjust-cell-height = 20%
+#font-style = "sWd Rg"
