@@ -110,23 +110,33 @@ alias redis-server-def="redis-server /opt/homebrew/etc/redis.conf"
 
 code () { VSCODE_CWD="$PWD" open -n -b "com.microsoft.VSCode" --args $* ;}
 
-alias gtwork="cd /Users/dawid/playmaker/fe-playmaker"
+alias gtwork="cd $HOME/playmaker/fe-playmaker"
 
 # pnpm
-export PNPM_HOME="/Users/dawid/Library/pnpm"
+export PNPM_HOME="$HOME/Library/pnpm"
 case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
 # pnpm end
 # The next line updates PATH for the Google Cloud SDK.
-if [ -f '/Users/dawid/Downloads/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/dawid/Downloads/google-cloud-sdk/path.zsh.inc'; fi
+if [ -f "$HOME/Downloads/google-cloud-sdk/path.zsh.inc" ]; then . "$HOME/Downloads/google-cloud-sdk/path.zsh.inc"; fi
 
 # The next line enables shell command completion for gcloud.
-if [ -f '/Users/dawid/Downloads/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/dawid/Downloads/google-cloud-sdk/completion.zsh.inc'; fi
+if [ -f "$HOME/Downloads/google-cloud-sdk/completion.zsh.inc" ]; then . "$HOME/Downloads/google-cloud-sdk/completion.zsh.inc"; fi
 
 # Added by LM Studio CLI (lms)
-export PATH="$PATH:/Users/dawid/.lmstudio/bin"
+export PATH="$PATH:$HOME/.lmstudio/bin"
 
 # Created by `pipx` on 2025-01-31 14:48:47
-export PATH="$PATH:/Users/dawid/.local/bin"
+export PATH="$PATH:$HOME/.local/bin"
+
+# nvm
+export NVM_DIR="$HOME/.nvm"
+  [ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"  # This loads nvm
+  [ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
+
+
+# pnpm homrebrew
+export PATH="/opt/homebrew/opt/pnpm@8/bin:$PATH"
+
