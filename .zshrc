@@ -140,3 +140,5 @@ export NVM_DIR="$HOME/.nvm"
 # pnpm homrebrew
 export PATH="/opt/homebrew/opt/pnpm@8/bin:$PATH"
 
+export PATH="/opt/homebrew/opt/php@7.4/bin:$PATH"
+export PATH="/opt/homebrew/opt/php@7.4/sbin:$PATH"

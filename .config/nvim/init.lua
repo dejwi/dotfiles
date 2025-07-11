@@ -1,3 +1,3 @@
 require("main.core")
 require("main.lazy")
-vim.cmd("language en_US")
+vim.cmd("lang en_US.UTF-8")
