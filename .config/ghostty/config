@@ -16,3 +16,4 @@ font-family = "JetBrainsMono Nerd Font Mono"
 #font-size = 14
 #adjust-cell-height = 20%
 #font-style = "sWd Rg"
+keybind = shift+enter=text:\n

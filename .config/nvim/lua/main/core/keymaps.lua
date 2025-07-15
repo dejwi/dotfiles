@@ -44,3 +44,17 @@ keymap.set("n", "<leader>9", "<cmd>tabn 9<CR>", { desc = "Go to tab page 9" })
 
 -- delete without clipboard
 keymap.set({ "n", "v" }, "d", '"_d')
+
+keymap.set(
+	"n",
+	"<leader>xc",
+	":call setreg('+', expand('%:.') .. ':' .. line('.'))<CR>",
+	{ noremap = true, desc = "Copy location to clipboard" }
+)
+keymap.set(
+	"n",
+	"<leader>xp",
+	":call setreg('+', expand('%'))<CR>",
+	{ noremap = true, desc = "Copy location to clipboard" }
+)
+keymap.set("n", "<leader>xo", ":e <C-r>+<CR>", { noremap = true, desc = "Go to location in clipboard" })
