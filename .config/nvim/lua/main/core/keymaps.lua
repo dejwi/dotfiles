@@ -41,6 +41,8 @@ keymap.set("n", "<leader>6", "<cmd>tabn 6<CR>", { desc = "Go to tab page 6" })
 keymap.set("n", "<leader>7", "<cmd>tabn 7<CR>", { desc = "Go to tab page 7" })
 keymap.set("n", "<leader>8", "<cmd>tabn 8<CR>", { desc = "Go to tab page 8" })
 keymap.set("n", "<leader>9", "<cmd>tabn 9<CR>", { desc = "Go to tab page 9" })
+keymap.set("n", "<PageUp>", "<cmd>tabn<CR>", { desc = "Go to next tab" }) --  go to next tab
+keymap.set("n", "<PageDown>", "<cmd>tabp<CR>", { desc = "Go to previous tab" }) --  go to previous tab
 
 -- delete without clipboard
 keymap.set({ "n", "v" }, "d", '"_d')

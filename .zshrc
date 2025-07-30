@@ -154,3 +154,9 @@ else
     export VISUAL="nvim"
     export EDITOR="nvim"
 fi
+
+# Android Studio
+export PATH=$PATH:$HOME/Library/Android/sdk/platform-tools
+export PATH=$PATH:$HOME/Library/Android/sdk/tools
+export PATH=$PATH:$HOME/Library/Android/sdk/emulator
+export ANDROID_HOME=$HOME/Library/Android/sdk
