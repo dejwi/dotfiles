@@ -164,3 +164,5 @@ export ANDROID_HOME=$HOME/Library/Android/sdk
 #     export EDITOR="nvim"
 # fi
 # [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+export PATH=$PATH:$HOME/.local/share/bob/nvim-bin 

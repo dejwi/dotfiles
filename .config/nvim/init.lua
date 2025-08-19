@@ -67,6 +67,7 @@ map(
 map("n", "<leader>xo", ":e <C-r>+<CR>", { noremap = true, desc = "Go to location in clipboard" })
 
 vim.pack.add({
+  { src = "https://github.com/ellisonleao/dotenv.nvim" },
   { src = "https://github.com/nvim-tree/nvim-web-devicons" },
   { src = "https://github.com/folke/snacks.nvim" },
   { src = "https://github.com/nvim-treesitter/nvim-treesitter" },
@@ -201,6 +202,10 @@ map('n', "gD", function() Snacks.picker.lsp_declarations() end, { desc = "Goto D
 map('n', "gr", function() Snacks.picker.lsp_references() end, { desc = "References" })
 map('n', "gI", function() Snacks.picker.lsp_implementations() end, { desc = "Goto Implementation" })
 map('n', "gy", function() Snacks.picker.lsp_type_definitions() end, { desc = "Goto T[y]pe Definition" })
+
+-- Dotenv
+require('dotenv').setup()
+vim.cmd.Dotenv(vim.fn.stdpath("config") .. "/.env")
 
 require('dawid')
 
