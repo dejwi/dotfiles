@@ -76,7 +76,9 @@ vim.pack.add({
   { src = "https://github.com/kylechui/nvim-surround" },
   { src = "https://github.com/rmagatti/auto-session" },
   { src = "https://github.com/saghen/blink.cmp",               version = vim.version.range('1.*') },
-  { src = "https://github.com/szw/vim-maximizer", }
+  { src = "https://github.com/szw/vim-maximizer", },
+  { src = "https://github.com/christoomey/vim-tmux-navigator", },
+  { src = "https://github.com/echasnovski/mini.pairs", }
 })
 
 require("mason").setup()
@@ -94,8 +96,20 @@ require("auto-session").setup({
   auto_session_suppress_dirs = { "~/", "~/Dev/", "~/Downloads", "~/Documents", "~/Desktop/" },
 })
 require("blink.cmp").setup({
-  completion = { documentation = { auto_show = true } },
+  completion = {
+    documentation = { auto_show = true },
+    trigger = {
+      show_on_insert_on_trigger_character = false,
+    },
+    -- accept = { auto_brackets = { enabled = true } }
+  },
+  keymap = {
+    preset = 'super-tab',
+    ['<C-k>'] = { 'select_prev', 'fallback' },
+    ['<C-j>'] = { 'select_next', 'fallback' },
+  },
 })
+require("mini.pairs").setup()
 
 map("n", "<leader>wr", "<cmd>SessionRestore<CR>", { desc = "Restore session for cwd" })
 map("n", "<leader>ws", "<cmd>SessionSave<CR>", { desc = "Save session for auto session root dir" })
@@ -105,10 +119,10 @@ map("n", "<leader>sm", "<cmd>MaximizerToggle<CR>", { desc = "Maximize/minimize a
 vim.lsp.enable({
   "lua_ls",
   "vtsls",
-  "html",
+  -- "html",
   "cssls",
   "tailwindcss",
-  "emmet_ls",
+  -- "emmet_ls",
   -- "prismals",
   -- "pyright",
   -- "clangd",
