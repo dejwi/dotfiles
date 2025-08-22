@@ -60,7 +60,7 @@ map(
 )
 map(
   "n",
-  "leader>xp",
+  "<leader>xp",
   ":call setreg('+', expand('%'))<CR>",
   { noremap = true, desc = "Copy location to clipboard" }
 )
@@ -130,13 +130,14 @@ vim.lsp.enable({
   "docker_compose_language_service",
   -- "helm_ls",
   -- "pyright",
-  -- "rust_analyzer"
+  -- "rust_analyzer",
+  "intelephense"
 })
 map({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, { desc = "See available code actions" })
 map("n", "<leader>rn", vim.lsp.buf.rename, { desc = "Smart rename" })
 map("n", "<leader>d", vim.diagnostic.open_float, { desc = "Show line diagnostics" })
 map("n", "<leader>rs", ":LspRestart<CR>", { desc = "Restart LSP" })
-map('n', '<leader>lf', vim.lsp.buf.format)
+map({ 'n', 'v' }, '<leader>lf', vim.lsp.buf.format)
 
 require("snacks").setup(
 ---@type snacks.Config
@@ -170,6 +171,24 @@ require("snacks").setup(
         },
         files = {
           hidden = true,
+          on_change = function(picker, item)
+            if item then
+              vim.schedule(function()
+                picker.preview.title = item.file
+                picker:update_titles()
+              end)
+            end
+          end,
+        },
+        grep = {
+          on_change = function(picker, item)
+            if item then
+              vim.schedule(function()
+                picker.preview.title = item.file
+                picker:update_titles()
+              end)
+            end
+          end,
         }
       }
     },
