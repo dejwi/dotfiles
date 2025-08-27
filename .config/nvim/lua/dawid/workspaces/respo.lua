@@ -1,4 +1,4 @@
--- vim.o.expandtab = false
+vim.o.expandtab = false
 
 vim.keymap.set('n', '<leader>gn', function()
   Snacks.picker.grep({ dirs = { "/Users/user/work/respo/apps/native/" } })
