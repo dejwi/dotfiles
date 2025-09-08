@@ -80,7 +80,8 @@ vim.pack.add({
   { src = "https://github.com/saghen/blink.cmp",               version = vim.version.range('1.*') },
   { src = "https://github.com/szw/vim-maximizer", },
   { src = "https://github.com/christoomey/vim-tmux-navigator", },
-  { src = "https://github.com/echasnovski/mini.pairs", }
+  { src = "https://github.com/echasnovski/mini.pairs", },
+  { src = "https://github.com/mhartington/formatter.nvim", }
 })
 
 require("mason").setup()
@@ -140,6 +141,7 @@ map("n", "<leader>rn", vim.lsp.buf.rename, { desc = "Smart rename" })
 map("n", "<leader>d", vim.diagnostic.open_float, { desc = "Show line diagnostics" })
 map("n", "<leader>rs", ":LspRestart<CR>", { desc = "Restart LSP" })
 map({ 'n', 'v' }, '<leader>lf', vim.lsp.buf.format)
+map({ 'n', 'v' }, '<leader>ll', ":Format<CR>")
 
 require("snacks").setup(
 ---@type snacks.Config
@@ -241,6 +243,36 @@ map('n', "gy", function() Snacks.picker.lsp_type_definitions() end, { desc = "Go
 -- Dotenv
 require('dotenv').setup()
 vim.cmd.Dotenv(vim.fn.stdpath("config") .. "/.env")
+
+local function prettier()
+  return {
+    exe = "prettierd",
+    args = { vim.api.nvim_buf_get_name(0) },
+    stdin = true
+  }
+end
+
+require('formatter').setup({
+  logging = true,
+  filetype = {
+    javascript = { prettier },
+    typescript = { prettier },
+    javascriptreact = { prettier },
+    typescriptreact = { prettier },
+    vue = { prettier },
+    ['javascript.jsx'] = { prettier },
+    ['typescript.tsx'] = { prettier },
+    markdown = { prettier },
+    css = { prettier },
+    json = { prettier },
+    jsonc = { prettier },
+    scss = { prettier },
+    less = { prettier },
+    yaml = { prettier },
+    graphql = { prettier },
+    html = { prettier },
+  }
+})
 
 require('dawid')
 
