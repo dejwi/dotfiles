@@ -17,6 +17,8 @@ vim.o.scrolloff = 8
 vim.o.ignorecase = true
 vim.o.smartcase = true
 
+vim.o.mouse = ''
+
 vim.g.mapleader = " "
 
 local map = vim.keymap.set
@@ -52,6 +54,12 @@ map("n", "<leader>7", "<cmd>tabn 7<CR>", { desc = "Go to tab page 7" })
 map("n", "<leader>8", "<cmd>tabn 8<CR>", { desc = "Go to tab page 8" })
 map("n", "<leader>9", "<cmd>tabn 9<CR>", { desc = "Go to tab page 9" })
 
+map("n", "<leader>to", "<cmd>tabnew<CR>", { desc = "Open new tab" })
+map("n", "<leader>tx", "<cmd>tabclose<CR>", { desc = "Close current tab" })
+map("n", "<leader>tn", "<cmd>tabn<CR>", { desc = "Go to next tab" })
+map("n", "<leader>tp", "<cmd>tabp<CR>", { desc = "Go to previous tab" })
+map("n", "<leader>tf", "<cmd>tabnew %<CR>", { desc = "Open current buffer in new tab" })
+
 map(
   "n",
   "<leader>xc",
@@ -81,7 +89,8 @@ vim.pack.add({
   { src = "https://github.com/szw/vim-maximizer", },
   { src = "https://github.com/christoomey/vim-tmux-navigator", },
   { src = "https://github.com/echasnovski/mini.pairs", },
-  { src = "https://github.com/mhartington/formatter.nvim", }
+  { src = "https://github.com/mhartington/formatter.nvim", },
+  { src = "https://github.com/MunifTanjim/prettier.nvim", }
 })
 
 require("mason").setup()
@@ -110,9 +119,28 @@ require("blink.cmp").setup({
     preset = 'super-tab',
     ['<C-k>'] = { 'select_prev', 'fallback' },
     ['<C-j>'] = { 'select_next', 'fallback' },
+    ['<CR>'] = { 'accept', 'fallback' },
   },
 })
 require("mini.pairs").setup()
+
+require("prettier").setup({
+  bin = 'prettier', -- or `'prettierd'` (v0.23.3+)
+  filetypes = {
+    "css",
+    "graphql",
+    "html",
+    "javascript",
+    "javascriptreact",
+    "json",
+    "less",
+    "markdown",
+    "scss",
+    "typescript",
+    "typescriptreact",
+    "yaml",
+  },
+})
 
 map("n", "<leader>wr", "<cmd>SessionRestore<CR>", { desc = "Restore session for cwd" })
 map("n", "<leader>ws", "<cmd>SessionSave<CR>", { desc = "Save session for auto session root dir" })
