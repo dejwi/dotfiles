@@ -60,6 +60,10 @@ map("n", "<leader>tn", "<cmd>tabn<CR>", { desc = "Go to next tab" })
 map("n", "<leader>tp", "<cmd>tabp<CR>", { desc = "Go to previous tab" })
 map("n", "<leader>tf", "<cmd>tabnew %<CR>", { desc = "Open current buffer in new tab" })
 
+map({ "n", "v", "i" }, "<D-z>", "<cmd>undo<CR>", { desc = "Undo", noremap = true })
+map({ "n", "v" }, "u", "<nop>")
+
+
 map(
   "n",
   "<leader>xc",
