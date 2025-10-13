@@ -94,7 +94,8 @@ vim.pack.add({
   { src = "https://github.com/christoomey/vim-tmux-navigator", },
   { src = "https://github.com/echasnovski/mini.pairs", },
   { src = "https://github.com/mhartington/formatter.nvim", },
-  { src = "https://github.com/MunifTanjim/prettier.nvim", }
+  { src = "https://github.com/MunifTanjim/prettier.nvim", },
+  { src = "https://github.com/gbprod/substitute.nvim", }
 })
 
 require("mason").setup()
@@ -305,6 +306,15 @@ require('formatter').setup({
     html = { prettier },
   }
 })
+
+require('substitute').setup()
+
+local substitute = require('substitute')
+
+map("n", "s", substitute.operator, { desc = "Substitute with motion" })
+-- map("n", "ss", substitute.line, { desc = "Substitute line" })
+-- map("n", "S", substitute.eol, { desc = "Substitute to end of line" })
+map("x", "s", substitute.visual, { desc = "Substitute in visual mode" })
 
 require('dawid')
 

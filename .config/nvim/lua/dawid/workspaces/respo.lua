@@ -15,3 +15,8 @@ end, { desc = "Grep respo - form-kids" })
 vim.keymap.set('n', '<leader>ga', function()
   Snacks.picker.grep({ dirs = { "/Users/user/work/respo/apps/api/" } })
 end, { desc = "Grep respo - api" })
+
+vim.keymap.set({'n', 'v'}, '<leader>le', function()
+	vim.o.expandtab = true
+	vim.lsp.buf.format()
+end, { desc = "lsp format + expandtab=true" })
