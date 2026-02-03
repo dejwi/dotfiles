@@ -166,3 +166,13 @@ export ANDROID_HOME=$HOME/Library/Android/sdk
 # [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 export PATH=$PATH:$HOME/.local/share/bob/nvim-bin 
+
+# Added by Antigravity
+export PATH="/Users/dawid/.antigravity/antigravity/bin:$PATH"
+. "/Users/dawid/.deno/env"
+
+# opencode
+export PATH=/Users/dawid/.opencode/bin:$PATH
+
+alias occ="opencode"
+alias cc="claude"

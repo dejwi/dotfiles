@@ -65,86 +65,86 @@ map({ "n", "v" }, "u", "<nop>")
 
 
 map(
-  "n",
-  "<leader>xc",
-  ":call setreg('+', expand('%:.') .. ':' .. line('.'))<CR>",
-  { noremap = true, desc = "Copy location to clipboard with line" }
+	"n",
+	"<leader>xc",
+	":call setreg('+', expand('%:.') .. ':' .. line('.'))<CR>",
+	{ noremap = true, desc = "Copy location to clipboard with line" }
 )
 map(
-  "n",
-  "<leader>xp",
-  ":call setreg('+', expand('%'))<CR>",
-  { noremap = true, desc = "Copy location to clipboard" }
+	"n",
+	"<leader>xp",
+	":call setreg('+', expand('%'))<CR>",
+	{ noremap = true, desc = "Copy location to clipboard" }
 )
 map("n", "<leader>xo", ":e <C-r>+<CR>", { noremap = true, desc = "Go to location in clipboard" })
 
 map('n', '<leader>v', ':e $MYVIMRC<CR>')
 
 vim.pack.add({
-  { src = "https://github.com/ellisonleao/dotenv.nvim" },
-  { src = "https://github.com/nvim-tree/nvim-web-devicons" },
-  { src = "https://github.com/folke/snacks.nvim" },
-  { src = "https://github.com/nvim-treesitter/nvim-treesitter" },
-  { src = "https://github.com/neovim/nvim-lspconfig" },
-  { src = "https://github.com/mason-org/mason.nvim" },
-  { src = "https://github.com/kylechui/nvim-surround" },
-  { src = "https://github.com/rmagatti/auto-session" },
-  { src = "https://github.com/saghen/blink.cmp",               version = vim.version.range('1.*') },
-  { src = "https://github.com/szw/vim-maximizer", },
-  { src = "https://github.com/christoomey/vim-tmux-navigator", },
-  { src = "https://github.com/echasnovski/mini.pairs", },
-  { src = "https://github.com/mhartington/formatter.nvim", },
-  { src = "https://github.com/MunifTanjim/prettier.nvim", },
-  { src = "https://github.com/gbprod/substitute.nvim", }
+	{ src = "https://github.com/ellisonleao/dotenv.nvim" },
+	{ src = "https://github.com/nvim-tree/nvim-web-devicons" },
+	{ src = "https://github.com/folke/snacks.nvim" },
+	{ src = "https://github.com/nvim-treesitter/nvim-treesitter" },
+	{ src = "https://github.com/neovim/nvim-lspconfig" },
+	{ src = "https://github.com/mason-org/mason.nvim" },
+	{ src = "https://github.com/kylechui/nvim-surround" },
+	{ src = "https://github.com/rmagatti/auto-session" },
+	{ src = "https://github.com/saghen/blink.cmp",               version = vim.version.range('1.*') },
+	{ src = "https://github.com/szw/vim-maximizer", },
+	{ src = "https://github.com/christoomey/vim-tmux-navigator", },
+	{ src = "https://github.com/echasnovski/mini.pairs", },
+	{ src = "https://github.com/mhartington/formatter.nvim", },
+	{ src = "https://github.com/MunifTanjim/prettier.nvim", },
+	{ src = "https://github.com/gbprod/substitute.nvim", }
 })
 
 require("mason").setup()
 require('nvim-treesitter.configs').setup({
-  ensure_installed = { "c", "lua", "markdown", "markdown_inline", "typescript", "css", "javascript", "python" },
-  auto_install = true,
-  highlight = {
-    enable = true,
-    additional_vim_regex_highlighting = false,
-  },
+	ensure_installed = { "c", "lua", "markdown", "markdown_inline", "typescript", "css", "javascript", "python" },
+	auto_install = true,
+	highlight = {
+		enable = true,
+		additional_vim_regex_highlighting = false,
+	},
 })
 require("nvim-surround").setup()
 require("auto-session").setup({
-  auto_restore_enabled = false,
-  auto_session_suppress_dirs = { "~/", "~/Dev/", "~/Downloads", "~/Documents", "~/Desktop/" },
+	auto_restore_enabled = false,
+	auto_session_suppress_dirs = { "~/", "~/Dev/", "~/Downloads", "~/Documents", "~/Desktop/" },
 })
 require("blink.cmp").setup({
-  completion = {
-    documentation = { auto_show = true },
-    trigger = {
-      show_on_insert_on_trigger_character = false,
-    },
-    -- accept = { auto_brackets = { enabled = true } }
-  },
-  keymap = {
-    preset = 'super-tab',
-    ['<C-k>'] = { 'select_prev', 'fallback' },
-    ['<C-j>'] = { 'select_next', 'fallback' },
-    ['<CR>'] = { 'accept', 'fallback' },
-  },
+	completion = {
+		documentation = { auto_show = true },
+		trigger = {
+			show_on_insert_on_trigger_character = false,
+		},
+		-- accept = { auto_brackets = { enabled = true } }
+	},
+	keymap = {
+		preset = 'super-tab',
+		['<C-k>'] = { 'select_prev', 'fallback' },
+		['<C-j>'] = { 'select_next', 'fallback' },
+		['<CR>'] = { 'accept', 'fallback' },
+	},
 })
 require("mini.pairs").setup()
 
 require("prettier").setup({
-  bin = 'prettier', -- or `'prettierd'` (v0.23.3+)
-  filetypes = {
-    "css",
-    "graphql",
-    "html",
-    "javascript",
-    "javascriptreact",
-    "json",
-    "less",
-    "markdown",
-    "scss",
-    "typescript",
-    "typescriptreact",
-    "yaml",
-  },
+	bin = 'prettier', -- or `'prettierd'` (v0.23.3+)
+	filetypes = {
+		"css",
+		"graphql",
+		"html",
+		"javascript",
+		"javascriptreact",
+		"json",
+		"less",
+		"markdown",
+		"scss",
+		"typescript",
+		"typescriptreact",
+		"yaml",
+	},
 })
 
 map("n", "<leader>wr", "<cmd>SessionRestore<CR>", { desc = "Restore session for cwd" })
@@ -153,21 +153,23 @@ map("n", "<leader>sm", "<cmd>MaximizerToggle<CR>", { desc = "Maximize/minimize a
 
 -- Lsp
 vim.lsp.enable({
-  "lua_ls",
-  "vtsls",
-  -- "html",
-  "cssls",
-  "tailwindcss",
-  -- "emmet_ls",
-  -- "prismals",
-  -- "pyright",
-  -- "clangd",
-  -- "dockerls",
-  -- "docker_compose_language_service",
-  -- "helm_ls",
-  -- "pyright",
-  -- "rust_analyzer",
-  "intelephense"
+	"lua_ls",
+	"vtsls",
+	-- "html",
+	"cssls",
+	"tailwindcss",
+	-- "emmet_ls",
+	-- "prismals",
+	-- "pyright",
+	"clangd",
+	-- "dockerls",
+	-- "docker_compose_language_service",
+	-- "helm_ls",
+	-- "pyright",
+	"rust_analyzer",
+	-- "intelephense",
+	"gdscript",
+	"gdshader_lsp"
 })
 map({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, { desc = "See available code actions" })
 map("n", "<leader>rn", vim.lsp.buf.rename, { desc = "Smart rename" })
@@ -176,80 +178,81 @@ map("n", "<leader>rs", ":LspRestart<CR>", { desc = "Restart LSP" })
 map({ 'n', 'v' }, '<leader>lf', vim.lsp.buf.format)
 map({ 'n', 'v' }, '<leader>ll', ":Format<CR>")
 
+
 require("snacks").setup(
 ---@type snacks.Config
-  {
-    picker = {
-      enabled = true,
-      hidden = true,
-      sources = {
-        explorer = {
-          win = {
-            input = {
-              keys = {
-                ['<C-t>'] = { 'tab', mode = { 'i', 'n' } },
-                ["<Tab>"] = { "confirm", mode = { "n", "i" } },
-                ["<CR>"] = { "confirm", mode = { "n", "i" } },
-                ["<S-Tab>"] = { "select_and_next", mode = { "i", "n" } },
-                -- ["<S-CR>"] = { "select_and_prev", mode = { "i", "n" } },
-              },
-            },
-            list = {
-              keys = {
-                -- ['<C-t>'] = 'tab',
-                ['<C-t>'] = 'tab',
-                ["<Tab>"] = "confirm",
-                ["<CR>"] = "confirm",
-                ["<S-Tab>"] = { "select_and_next", mode = { "x", "n" } },
-                -- ["<S-CR>"] = { "select_and_prev", mode = { "x", "n" } },
-              }
-            }
-          }
-        },
-        files = {
-          hidden = true,
-          on_change = function(picker, item)
-            if item then
-              vim.schedule(function()
-                picker.preview.title = item.file
-                picker:update_titles()
-              end)
-            end
-          end,
-        },
-        grep = {
-          on_change = function(picker, item)
-            if item then
-              vim.schedule(function()
-                picker.preview.title = item.file
-                picker:update_titles()
-              end)
-            end
-          end,
-        }
-      }
-    },
-    explorer = {
-      enabled = true,
-      replace_netrw = true
-    },
-    lazygit = {
-      enabled = true,
-      configure = true,
-    },
-    terminal = {
-      enabled = false,
-    },
-    indent = {
-      animate = {
-        enabled = false,
-      },
-      indent = {
-        enabled = false,
-      },
-    }
-    -- hidden = true,
-  })
+	{
+		picker = {
+			enabled = true,
+			hidden = true,
+			sources = {
+				explorer = {
+					win = {
+						input = {
+							keys = {
+								['<C-t>'] = { 'tab', mode = { 'i', 'n' } },
+								["<Tab>"] = { "confirm", mode = { "n", "i" } },
+								["<CR>"] = { "confirm", mode = { "n", "i" } },
+								["<S-Tab>"] = { "select_and_next", mode = { "i", "n" } },
+								-- ["<S-CR>"] = { "select_and_prev", mode = { "i", "n" } },
+							},
+						},
+						list = {
+							keys = {
+								-- ['<C-t>'] = 'tab',
+								['<C-t>'] = 'tab',
+								["<Tab>"] = "confirm",
+								["<CR>"] = "confirm",
+								["<S-Tab>"] = { "select_and_next", mode = { "x", "n" } },
+								-- ["<S-CR>"] = { "select_and_prev", mode = { "x", "n" } },
+							}
+						}
+					}
+				},
+				files = {
+					hidden = true,
+					on_change = function(picker, item)
+						if item then
+							vim.schedule(function()
+								picker.preview.title = item.file
+								picker:update_titles()
+							end)
+						end
+					end,
+				},
+				grep = {
+					on_change = function(picker, item)
+						if item then
+							vim.schedule(function()
+								picker.preview.title = item.file
+								picker:update_titles()
+							end)
+						end
+					end,
+				}
+			}
+		},
+		explorer = {
+			enabled = true,
+			replace_netrw = true
+		},
+		lazygit = {
+			enabled = true,
+			configure = true,
+		},
+		terminal = {
+			enabled = false,
+		},
+		indent = {
+			animate = {
+				enabled = false,
+			},
+			indent = {
+				enabled = false,
+			},
+		}
+		-- hidden = true,
+	})
 
 map('n', "<leader><space>", function() Snacks.picker.smart() end, { desc = "Smart Find Files" })
 map('n', "<leader>g", function() Snacks.picker.git_files() end, { desc = "Find git files" })
@@ -278,33 +281,33 @@ require('dotenv').setup()
 vim.cmd.Dotenv(vim.fn.stdpath("config") .. "/.env")
 
 local function prettier()
-  return {
-    exe = "prettierd",
-    args = { vim.api.nvim_buf_get_name(0) },
-    stdin = true
-  }
+	return {
+		exe = "prettierd",
+		args = { vim.api.nvim_buf_get_name(0) },
+		stdin = true
+	}
 end
 
 require('formatter').setup({
-  logging = true,
-  filetype = {
-    javascript = { prettier },
-    typescript = { prettier },
-    javascriptreact = { prettier },
-    typescriptreact = { prettier },
-    vue = { prettier },
-    ['javascript.jsx'] = { prettier },
-    ['typescript.tsx'] = { prettier },
-    markdown = { prettier },
-    css = { prettier },
-    json = { prettier },
-    jsonc = { prettier },
-    scss = { prettier },
-    less = { prettier },
-    yaml = { prettier },
-    graphql = { prettier },
-    html = { prettier },
-  }
+	logging = true,
+	filetype = {
+		javascript = { prettier },
+		typescript = { prettier },
+		javascriptreact = { prettier },
+		typescriptreact = { prettier },
+		vue = { prettier },
+		['javascript.jsx'] = { prettier },
+		['typescript.tsx'] = { prettier },
+		markdown = { prettier },
+		css = { prettier },
+		json = { prettier },
+		jsonc = { prettier },
+		scss = { prettier },
+		less = { prettier },
+		yaml = { prettier },
+		graphql = { prettier },
+		html = { prettier },
+	}
 })
 
 require('substitute').setup()
@@ -315,6 +318,7 @@ map("n", "s", substitute.operator, { desc = "Substitute with motion" })
 -- map("n", "ss", substitute.line, { desc = "Substitute line" })
 -- map("n", "S", substitute.eol, { desc = "Substitute to end of line" })
 map("x", "s", substitute.visual, { desc = "Substitute in visual mode" })
+
 
 require('dawid')
 
@@ -347,3 +351,5 @@ require('dawid')
 --
 --
 -- Snacks.picker.colorschemes()
+--
+--
