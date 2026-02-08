@@ -176,3 +176,26 @@ export PATH=/Users/dawid/.opencode/bin:$PATH
 
 alias occ="opencode"
 alias cc="claude"
+
+# OpenCode sandbox
+export OCX_IMAGE="opencode-dev:latest"
+export OCX_CONTEXT_DIR="$HOME/dotfiles/.config/opencode/sandbox"
+export OCX_DOCKERFILE="$HOME/dotfiles/.config/opencode/sandbox/Dockerfile"
+export OCX_CONFIG_SOURCE="$HOME/dotfiles/.config/opencode"
+
+ocx() {
+  local ocx_bin="$HOME/.config/opencode/sandbox/ocx"
+  if [[ ! -x "$ocx_bin" ]]; then
+    ocx_bin="$HOME/dotfiles/.config/opencode/sandbox/ocx"
+  fi
+  "$ocx_bin" "$@"
+}
+
+alias ocxb="ocx build"
+
+# bun completions
+[ -s "/Users/dawid/.bun/_bun" ] && source "/Users/dawid/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"

@@ -1,0 +1,363 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+IMAGE="${OCX_IMAGE:-opencode-dev:latest}"
+
+if [[ -d "$HOME/dotfiles/.config/opencode/sandbox" ]]; then
+  CONTEXT_DIR_DEFAULT="$HOME/dotfiles/.config/opencode/sandbox"
+else
+  CONTEXT_DIR_DEFAULT="$HOME/.config/opencode/sandbox"
+fi
+
+CONTEXT_DIR="${OCX_CONTEXT_DIR:-$CONTEXT_DIR_DEFAULT}"
+DOCKERFILE="${OCX_DOCKERFILE:-$CONTEXT_DIR/Dockerfile}"
+
+if [[ -d "$HOME/dotfiles/.config/opencode" ]]; then
+  CONFIG_SOURCE_DEFAULT="$HOME/dotfiles/.config/opencode"
+else
+  CONFIG_SOURCE_DEFAULT="$HOME/.config/opencode"
+fi
+CONFIG_SOURCE="${OCX_CONFIG_SOURCE:-$CONFIG_SOURCE_DEFAULT}"
+
+help() {
+  cat <<'EOF'
+ocx - OpenCode sandbox runner
+
+Usage:
+  ocx [worktree-path] [opencode-args...]
+  ocx shell [worktree-path]
+  ocx serve [worktree-path] [--port <host-port>] [--name <container-name>] [-- <serve-args...>]
+  ocx serve ls
+  ocx serve stop <container>
+  ocx build
+
+Examples:
+  ocx
+  ocx /Users/dawid/projects/nvim-settings/main
+  ocx . run "summarize this repo"
+  ocx shell .
+  ocx serve .
+  ocx serve . --port 4400
+  ocx serve ls
+  ocx build
+
+Environment (optional):
+  OCX_IMAGE           Docker image tag (default: opencode-dev:latest)
+  OCX_CPUS            Per-container CPU cap (example: 2)
+  OCX_MEMORY          Per-container memory cap (example: 4g)
+  OCX_PIDS            PID limit (example: 512)
+  OCX_RUN_AS_USER     1/0 (default: 1)
+  OCX_CONFIG_SOURCE   OpenCode config dir to mount
+  OCX_NODE_MODULES_VOLUME 1/0 (default: 1; use Linux-only node_modules volume)
+EOF
+}
+
+check_docker() {
+  if ! docker info >/dev/null 2>&1; then
+    echo "Docker daemon is not running (or not reachable)." >&2
+    return 1
+  fi
+}
+
+build_image() {
+  check_docker
+  docker build -t "$IMAGE" -f "$DOCKERFILE" "$CONTEXT_DIR"
+}
+
+ensure_image() {
+  if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
+    echo "Image '$IMAGE' not found. Building it now..."
+    build_image
+  fi
+}
+
+ensure_runtime_setup() {
+  if [[ ! -d "$CONFIG_SOURCE" ]]; then
+    echo "OpenCode config directory not found: $CONFIG_SOURCE" >&2
+    exit 1
+  fi
+
+  check_docker
+  DOCKER_OS="$(docker info --format '{{.OperatingSystem}}' 2>/dev/null || true)"
+  ensure_image
+
+  mkdir -p \
+    "$HOME/.local/share/ocx/home" \
+    "$HOME/.local/share/opencode" \
+    "$HOME/.cache/opencode" \
+    "$HOME/.cache/ms-playwright" \
+    "$HOME/.local/share/agent-browser"
+}
+
+apply_runtime_limits() {
+  if [[ "${OCX_RUN_AS_USER:-1}" == "1" ]]; then
+    args+=(--user "$(id -u):$(id -g)")
+  fi
+
+  if [[ -n "${OCX_CPUS:-}" ]]; then
+    args+=(--cpus "$OCX_CPUS")
+  fi
+
+  if [[ -n "${OCX_MEMORY:-}" ]]; then
+    args+=(--memory "$OCX_MEMORY")
+  fi
+
+  if [[ -n "${OCX_PIDS:-}" ]]; then
+    args+=(--pids-limit "$OCX_PIDS")
+  fi
+}
+
+apply_common_mounts_and_env() {
+  local worktree="$1"
+  local worktree_hash=""
+
+  args+=(
+    --workdir /workspace
+    -e HOME=/home/opencode
+    -e XDG_CONFIG_HOME=/home/opencode/.config
+    -e XDG_DATA_HOME=/home/opencode/.local/share
+    -e XDG_CACHE_HOME=/home/opencode/.cache
+    -e AGENT_BROWSER_HOME=/home/opencode/.local/share/agent-browser
+    -e PLAYWRIGHT_BROWSERS_PATH=/home/opencode/.cache/ms-playwright
+    -e GIT_CONFIG_COUNT=1
+    -e GIT_CONFIG_KEY_0=safe.directory
+    -e GIT_CONFIG_VALUE_0=/workspace
+    -v "$worktree:/workspace"
+    -v "$HOME/.local/share/ocx/home:/home/opencode"
+    -v "$CONFIG_SOURCE:/home/opencode/.config/opencode"
+    -v "$HOME/.local/share/opencode:/home/opencode/.local/share/opencode"
+    -v "$HOME/.cache/opencode:/home/opencode/.cache/opencode"
+    -v "$HOME/.cache/ms-playwright:/home/opencode/.cache/ms-playwright"
+    -v "$HOME/.local/share/agent-browser:/home/opencode/.local/share/agent-browser"
+  )
+
+  if [[ -f "$HOME/.gitconfig" ]]; then
+    args+=(-v "$HOME/.gitconfig:/home/opencode/.gitconfig:ro")
+  fi
+
+  if [[ -f "$HOME/.npmrc" ]]; then
+    args+=(-v "$HOME/.npmrc:/home/opencode/.npmrc:ro")
+  fi
+
+  if [[ -d "$HOME/.ssh" ]]; then
+    args+=(-v "$HOME/.ssh:/home/opencode/.ssh:ro")
+  fi
+
+  if [[ -n "${SSH_AUTH_SOCK:-}" && -S "${SSH_AUTH_SOCK}" ]]; then
+    ssh_auth_sock_source="${SSH_AUTH_SOCK}"
+
+    if [[ "$(uname -s)" == "Darwin" ]] && [[ "${SSH_AUTH_SOCK}" == /private/tmp/com.apple.launchd.*/Listeners ]] && [[ "${DOCKER_OS}" == *"Docker Desktop"* ]]; then
+      ssh_auth_sock_source="/run/host-services/ssh-auth.sock"
+    fi
+
+    args+=(-v "${ssh_auth_sock_source}:/ssh-agent" -e SSH_AUTH_SOCK=/ssh-agent)
+  fi
+
+  if [[ -n "${OPENCODE_SERVER_PASSWORD:-}" ]]; then
+    args+=(-e "OPENCODE_SERVER_PASSWORD=${OPENCODE_SERVER_PASSWORD}")
+  fi
+
+  if [[ -n "${OPENCODE_SERVER_USERNAME:-}" ]]; then
+    args+=(-e "OPENCODE_SERVER_USERNAME=${OPENCODE_SERVER_USERNAME}")
+  fi
+
+  if [[ "${OCX_NODE_MODULES_VOLUME:-1}" == "1" ]]; then
+    worktree_hash="$(printf '%s' "$worktree" | shasum -a 256)"
+    worktree_hash="${worktree_hash%% *}"
+    args+=(-v "ocx-node-modules-${worktree_hash}:/workspace/node_modules")
+  fi
+}
+
+has_flag() {
+  local flag="$1"
+  shift
+  for arg in "$@"; do
+    if [[ "$arg" == "$flag" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+serve_list() {
+  check_docker
+  docker ps \
+    --filter label=ocx.mode=serve \
+    --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}\t{{.Label "ocx.worktree"}}'
+}
+
+serve_stop() {
+  local target="${1:-}"
+
+  if [[ -z "$target" ]]; then
+    echo "Usage: ocx serve stop <container>" >&2
+    exit 1
+  fi
+
+  check_docker
+  docker stop "$target" >/dev/null
+  echo "Stopped $target"
+}
+
+start_serve() {
+  local worktree="$PWD"
+  local serve_port=""
+  local serve_name=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --port)
+        if [[ $# -lt 2 ]]; then
+          echo "Missing value for --port" >&2
+          exit 1
+        fi
+        serve_port="$2"
+        shift 2
+        ;;
+      --name)
+        if [[ $# -lt 2 ]]; then
+          echo "Missing value for --name" >&2
+          exit 1
+        fi
+        serve_name="$2"
+        shift 2
+        ;;
+      --)
+        shift
+        break
+        ;;
+      *)
+        if [[ -d "$1" ]]; then
+          worktree="$(cd "$1" && pwd)"
+          shift
+          continue
+        fi
+        break
+        ;;
+    esac
+  done
+
+  local serve_container_port="4096"
+  local serve_cmd=(serve)
+
+  if ! has_flag "--hostname" "$@"; then
+    serve_cmd+=(--hostname 0.0.0.0)
+  fi
+
+  if ! has_flag "--port" "$@"; then
+    serve_cmd+=(--port "$serve_container_port")
+  fi
+
+  if [[ $# -gt 0 ]]; then
+    serve_cmd+=("$@")
+  fi
+
+  if [[ -z "$serve_name" ]]; then
+    serve_name="ocx-serve-$(basename "$worktree")-$(date +%H%M%S)"
+  fi
+
+  ensure_runtime_setup
+
+  args=(
+    docker run -d --init --rm
+    --name "$serve_name"
+    --label ocx.mode=serve
+    --label "ocx.worktree=$worktree"
+  )
+
+  if [[ -n "$serve_port" ]]; then
+    args+=(-p "127.0.0.1:${serve_port}:${serve_container_port}")
+  else
+    args+=(-p "127.0.0.1::${serve_container_port}")
+  fi
+
+  apply_common_mounts_and_env "$worktree"
+  apply_runtime_limits
+
+  args+=("$IMAGE" "${serve_cmd[@]}")
+
+  local container_id
+  container_id="$("${args[@]}")"
+
+  local port_line
+  local resolved_port=""
+  port_line="$(docker port "$container_id" "${serve_container_port}/tcp" 2>/dev/null || true)"
+  if [[ -n "$port_line" ]]; then
+    resolved_port="${port_line##*:}"
+  fi
+
+  echo "Started ${serve_name}"
+  if [[ -n "$resolved_port" ]]; then
+    echo "URL: http://127.0.0.1:${resolved_port}"
+    echo "OpenAPI: http://127.0.0.1:${resolved_port}/doc"
+  fi
+  if [[ -n "${OPENCODE_SERVER_PASSWORD:-}" ]]; then
+    echo "Auth: ${OPENCODE_SERVER_USERNAME:-opencode} / <OPENCODE_SERVER_PASSWORD>"
+  fi
+  echo "Stop: ocx serve stop ${serve_name}"
+}
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  help
+  exit 0
+fi
+
+if [[ "${1:-}" == "build" ]]; then
+  build_image
+  exit 0
+fi
+
+if [[ "${1:-}" == "serve" ]]; then
+  shift
+  case "${1:-}" in
+    ls|list)
+      serve_list
+      exit 0
+      ;;
+    stop)
+      shift
+      serve_stop "${1:-}"
+      exit 0
+      ;;
+  esac
+
+  start_serve "$@"
+  exit 0
+fi
+
+MODE="opencode"
+if [[ "${1:-}" == "shell" ]]; then
+  MODE="shell"
+  shift
+fi
+
+WORKTREE="$PWD"
+if [[ $# -gt 0 && -d "$1" ]]; then
+  WORKTREE="$(cd "$1" && pwd)"
+  shift
+fi
+
+ensure_runtime_setup
+
+args=(
+  docker run --rm -it --init
+  --name "ocx-$(basename "$WORKTREE")-$(date +%H%M%S)"
+)
+
+apply_common_mounts_and_env "$WORKTREE"
+apply_runtime_limits
+
+if [[ "$MODE" == "shell" ]]; then
+  if [[ $# -gt 0 ]]; then
+    args+=("$IMAGE" bash -lc "$*")
+  else
+    args+=("$IMAGE" bash -l)
+  fi
+else
+  args+=("$IMAGE")
+  if [[ $# -gt 0 ]]; then
+    args+=("$@")
+  fi
+fi
+
+exec "${args[@]}"

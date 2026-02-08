@@ -95,7 +95,9 @@ vim.pack.add({
 	{ src = "https://github.com/echasnovski/mini.pairs", },
 	{ src = "https://github.com/mhartington/formatter.nvim", },
 	{ src = "https://github.com/MunifTanjim/prettier.nvim", },
-	{ src = "https://github.com/gbprod/substitute.nvim", }
+	{ src = "https://github.com/gbprod/substitute.nvim", },
+	{ src = "https://github.com/Juksuu/worktrees.nvim", },
+	{ src = "https://github.com/nvim-lua/plenary.nvim", }
 })
 
 require("mason").setup()
@@ -253,6 +255,11 @@ require("snacks").setup(
 		}
 		-- hidden = true,
 	})
+
+require("worktrees").setup()
+map("n", "<leader>gws", function() Snacks.picker.worktrees() end, { desc = "List git worktrees" })
+map("n", "<leader>gwn", function() Snacks.picker.worktrees_new() end, { desc = "Create git worktree" })
+map("n", "<leader>gwr", function() Snacks.picker.worktrees_remove() end, { desc = "Delete git worktree" })
 
 map('n', "<leader><space>", function() Snacks.picker.smart() end, { desc = "Smart Find Files" })
 map('n', "<leader>g", function() Snacks.picker.git_files() end, { desc = "Find git files" })
