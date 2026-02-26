@@ -18,6 +18,20 @@ else
   CONFIG_SOURCE_DEFAULT="$HOME/.config/opencode"
 fi
 CONFIG_SOURCE="${OCX_CONFIG_SOURCE:-$CONFIG_SOURCE_DEFAULT}"
+CLIPBOARD_IMAGE_DIR="${OCX_CLIPBOARD_IMAGE_DIR:-/tmp/clipboard-images}"
+
+expand_home_path() {
+  local path="$1"
+  if [[ "$path" == "~" ]]; then
+    printf '%s\n' "$HOME"
+  elif [[ "$path" == ~/* ]]; then
+    printf '%s/%s\n' "$HOME" "${path#~/}"
+  else
+    printf '%s\n' "$path"
+  fi
+}
+
+CLIPBOARD_IMAGE_DIR="$(expand_home_path "$CLIPBOARD_IMAGE_DIR")"
 
 help() {
   cat <<'EOF'
@@ -46,9 +60,12 @@ Environment (optional):
   OCX_CPUS            Per-container CPU cap (example: 2)
   OCX_MEMORY          Per-container memory cap (example: 4g)
   OCX_PIDS            PID limit (example: 512)
-  OCX_RUN_AS_USER     1/0 (default: 1)
+  OCX_RUN_AS_USER     1/0 (default: 0)
   OCX_CONFIG_SOURCE   OpenCode config dir to mount
   OCX_NODE_MODULES_VOLUME 1/0 (default: 1; use Linux-only node_modules volume)
+  OCX_PLAYWRIGHT_CACHE_MOUNT 1/0 (default: 0; mount host Playwright cache)
+  OCX_CLIPBOARD_IMAGE_MOUNT 1/0 (default: 1; mount clipboard image directory)
+  OCX_CLIPBOARD_IMAGE_DIR Host clipboard image dir (default: /tmp/clipboard-images)
 EOF
 }
 
@@ -61,7 +78,7 @@ check_docker() {
 
 build_image() {
   check_docker
-  docker build -t "$IMAGE" -f "$DOCKERFILE" "$CONTEXT_DIR"
+  docker build -t "$IMAGE" -f "$DOCKERFILE" "$CONTEXT_DIR" --no-cache
 }
 
 ensure_image() {
@@ -82,15 +99,18 @@ ensure_runtime_setup() {
   ensure_image
 
   mkdir -p \
-    "$HOME/.local/share/ocx/home" \
     "$HOME/.local/share/opencode" \
     "$HOME/.cache/opencode" \
     "$HOME/.cache/ms-playwright" \
     "$HOME/.local/share/agent-browser"
+
+  if [[ "${OCX_CLIPBOARD_IMAGE_MOUNT:-1}" == "1" ]]; then
+    mkdir -p "$CLIPBOARD_IMAGE_DIR"
+  fi
 }
 
 apply_runtime_limits() {
-  if [[ "${OCX_RUN_AS_USER:-1}" == "1" ]]; then
+  if [[ "${OCX_RUN_AS_USER:-0}" == "1" ]]; then
     args+=(--user "$(id -u):$(id -g)")
   fi
 
@@ -107,9 +127,31 @@ apply_runtime_limits() {
   fi
 }
 
+node_modules_volume_name() {
+  local worktree="$1"
+  local worktree_hash
+
+  worktree_hash="$(printf '%s' "$worktree" | shasum -a 256)"
+  worktree_hash="${worktree_hash%% *}"
+  printf 'ocx-node-modules-%s' "$worktree_hash"
+}
+
+prepare_node_modules_volume() {
+  local worktree="$1"
+  local volume_name
+
+  volume_name="$(node_modules_volume_name "$worktree")"
+  docker volume create "$volume_name" >/dev/null
+  docker run --rm \
+    -v "$volume_name:/node_modules" \
+    --entrypoint bash \
+    "$IMAGE" \
+    -lc 'chmod 0777 /node_modules' >/dev/null
+}
+
 apply_common_mounts_and_env() {
   local worktree="$1"
-  local worktree_hash=""
+  local node_modules_volume=""
 
   args+=(
     --workdir /workspace
@@ -119,17 +161,24 @@ apply_common_mounts_and_env() {
     -e XDG_CACHE_HOME=/home/opencode/.cache
     -e AGENT_BROWSER_HOME=/home/opencode/.local/share/agent-browser
     -e PLAYWRIGHT_BROWSERS_PATH=/home/opencode/.cache/ms-playwright
+    -e CLIPBOARD_IMAGE_DIR="$CLIPBOARD_IMAGE_DIR"
     -e GIT_CONFIG_COUNT=1
     -e GIT_CONFIG_KEY_0=safe.directory
     -e GIT_CONFIG_VALUE_0=/workspace
     -v "$worktree:/workspace"
-    -v "$HOME/.local/share/ocx/home:/home/opencode"
     -v "$CONFIG_SOURCE:/home/opencode/.config/opencode"
     -v "$HOME/.local/share/opencode:/home/opencode/.local/share/opencode"
     -v "$HOME/.cache/opencode:/home/opencode/.cache/opencode"
-    -v "$HOME/.cache/ms-playwright:/home/opencode/.cache/ms-playwright"
     -v "$HOME/.local/share/agent-browser:/home/opencode/.local/share/agent-browser"
   )
+
+  if [[ "${OCX_CLIPBOARD_IMAGE_MOUNT:-1}" == "1" ]]; then
+    args+=(-v "$CLIPBOARD_IMAGE_DIR:$CLIPBOARD_IMAGE_DIR:ro")
+  fi
+
+  if [[ "${OCX_PLAYWRIGHT_CACHE_MOUNT:-0}" == "1" ]]; then
+    args+=(-v "$HOME/.cache/ms-playwright:/home/opencode/.cache/ms-playwright")
+  fi
 
   if [[ -f "$HOME/.gitconfig" ]]; then
     args+=(-v "$HOME/.gitconfig:/home/opencode/.gitconfig:ro")
@@ -162,9 +211,9 @@ apply_common_mounts_and_env() {
   fi
 
   if [[ "${OCX_NODE_MODULES_VOLUME:-1}" == "1" ]]; then
-    worktree_hash="$(printf '%s' "$worktree" | shasum -a 256)"
-    worktree_hash="${worktree_hash%% *}"
-    args+=(-v "ocx-node-modules-${worktree_hash}:/workspace/node_modules")
+    prepare_node_modules_volume "$worktree"
+    node_modules_volume="$(node_modules_volume_name "$worktree")"
+    args+=(-v "${node_modules_volume}:/workspace/node_modules")
   fi
 }
 

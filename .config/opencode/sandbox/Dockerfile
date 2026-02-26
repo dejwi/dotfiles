@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   git \
   gh \
   jq \
+  lsof \
   openssh-client \
   ripgrep \
   fd-find \
@@ -26,6 +27,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   libgtk-3-dev \
   libayatana-appindicator3-dev \
   librsvg2-dev \
+  libnspr4 \
+  libnss3 \
+  libasound2t64 \
   patchelf \
   xvfb \
   && rm -rf /var/lib/apt/lists/*
@@ -54,11 +58,6 @@ RUN mkdir -p "${CARGO_HOME}" "${RUSTUP_HOME}" \
     | sh -s -- -y --profile minimal --default-toolchain stable --no-modify-path \
   && rustup component add rustfmt clippy
 
-# OpenCode + browser automation + Tauri CLI.
-RUN npm install -g opencode-ai@latest agent-browser@latest @tauri-apps/cli@latest \
-  && npx playwright install --with-deps chromium \
-  && npm cache clean --force
-
 ENV HOME=/home/opencode
 ENV XDG_CONFIG_HOME=/home/opencode/.config
 ENV XDG_DATA_HOME=/home/opencode/.local/share
@@ -66,10 +65,20 @@ ENV XDG_CACHE_HOME=/home/opencode/.cache
 ENV AGENT_BROWSER_HOME=/home/opencode/.local/share/agent-browser
 ENV PLAYWRIGHT_BROWSERS_PATH=/home/opencode/.cache/ms-playwright
 
+# OpenCode + browser automation + Tauri CLI.
 RUN mkdir -p \
   /home/opencode/.config \
   /home/opencode/.local/share \
   /home/opencode/.cache \
+  /home/opencode/.cache/ms-playwright \
+  /home/opencode/.local/share/agent-browser \
+  && chmod -R 777 /home/opencode \
+  && npm install -g opencode-ai@latest agent-browser@latest @tauri-apps/cli@latest \
+  && npx -y playwright@latest install-deps chromium \
+  && AGENT_BROWSER_HOME=/home/opencode/.local/share/agent-browser PLAYWRIGHT_BROWSERS_PATH=/home/opencode/.cache/ms-playwright agent-browser install --with-deps \
+  && npm cache clean --force
+
+RUN mkdir -p \
   /workspace \
   && chmod -R 777 /home/opencode /workspace
 
