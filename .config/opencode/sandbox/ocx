@@ -19,6 +19,16 @@ else
 fi
 CONFIG_SOURCE="${OCX_CONFIG_SOURCE:-$CONFIG_SOURCE_DEFAULT}"
 CLIPBOARD_IMAGE_DIR="${OCX_CLIPBOARD_IMAGE_DIR:-/tmp/clipboard-images}"
+SHARED_OPENCODE_DATA_DIR="${OCX_SHARED_OPENCODE_DATA_DIR:-$HOME/.local/share/opencode}"
+LOCAL_OPENCODE_DIST="${OCX_LOCAL_OPENCODE_DIST:-$HOME/projects/opencode/packages/opencode/dist}"
+LOCAL_OPENCODE_CONTAINER_BIN="/usr/local/bin/opencode-local"
+
+LOCAL_OPENCODE_BIN=""
+WORKTREE_GITDIR_HOST=""
+WORKTREE_GIT_COMMON_DIR_HOST=""
+WORKTREE_OPENCODE_DB_FILE_HOST=""
+WORKTREE_OPENCODE_DB_WAL_FILE_HOST=""
+WORKTREE_OPENCODE_DB_SHM_FILE_HOST=""
 
 expand_home_path() {
   local path="$1"
@@ -32,6 +42,195 @@ expand_home_path() {
 }
 
 CLIPBOARD_IMAGE_DIR="$(expand_home_path "$CLIPBOARD_IMAGE_DIR")"
+SHARED_OPENCODE_DATA_DIR="$(expand_home_path "$SHARED_OPENCODE_DATA_DIR")"
+LOCAL_OPENCODE_DIST="$(expand_home_path "$LOCAL_OPENCODE_DIST")"
+
+resolve_path_from_base() {
+  local path="$1"
+  local base_dir="$2"
+  local resolved_dir=""
+
+  if [[ "$path" == /* ]]; then
+    printf '%s\n' "$path"
+    return
+  fi
+
+  if ! resolved_dir="$(cd "$base_dir/$(dirname "$path")" 2>/dev/null && pwd)"; then
+    return 1
+  fi
+
+  printf '%s/%s\n' "$resolved_dir" "$(basename "$path")"
+}
+
+detect_linked_worktree_git_dirs() {
+  local worktree="$1"
+  local git_file="$worktree/.git"
+  local git_line=""
+
+  WORKTREE_GITDIR_HOST=""
+  WORKTREE_GIT_COMMON_DIR_HOST=""
+
+  if [[ ! -f "$git_file" ]]; then
+    return
+  fi
+
+  IFS= read -r git_line < "$git_file" || true
+  if [[ "$git_line" != gitdir:\ * ]]; then
+    return
+  fi
+
+  local gitdir_raw="${git_line#gitdir: }"
+  local gitdir_abs=""
+  local commondir_file=""
+  local commondir_raw=""
+  local common_abs=""
+
+  if ! gitdir_abs="$(resolve_path_from_base "$gitdir_raw" "$worktree")"; then
+    echo "Warning: unable to resolve linked gitdir path: $gitdir_raw" >&2
+    return
+  fi
+  if [[ ! -d "$gitdir_abs" ]]; then
+    echo "Warning: linked gitdir is missing: $gitdir_abs" >&2
+    return
+  fi
+
+  commondir_file="$gitdir_abs/commondir"
+  if [[ -f "$commondir_file" ]]; then
+    IFS= read -r commondir_raw < "$commondir_file" || true
+    if [[ -n "$commondir_raw" ]]; then
+      if ! common_abs="$(resolve_path_from_base "$commondir_raw" "$gitdir_abs")"; then
+        echo "Warning: unable to resolve linked commondir path: $commondir_raw" >&2
+        return
+      fi
+    fi
+  fi
+
+  if [[ -z "$common_abs" ]]; then
+    common_abs="$gitdir_abs"
+  fi
+
+  if [[ ! -d "$common_abs" ]]; then
+    echo "Warning: linked common gitdir is missing: $common_abs" >&2
+    return
+  fi
+
+  WORKTREE_GITDIR_HOST="$gitdir_abs"
+  WORKTREE_GIT_COMMON_DIR_HOST="$common_abs"
+}
+
+resolve_worktree_opencode_db_file() {
+  local worktree="$1"
+  local configured_data_dir="${OCX_OPENCODE_DATA_DIR:-opencode-data}"
+  local configured_db_path="${OCX_OPENCODE_DB_PATH:-}"
+  local resolved_data_dir=""
+
+  if [[ -n "$configured_db_path" ]]; then
+    if [[ "$configured_db_path" == /* || "$configured_db_path" == "~" || "$configured_db_path" == ~/* ]]; then
+      WORKTREE_OPENCODE_DB_FILE_HOST="$(expand_home_path "$configured_db_path")"
+    else
+      WORKTREE_OPENCODE_DB_FILE_HOST="$worktree/$configured_db_path"
+    fi
+  else
+    if [[ "$configured_data_dir" == /* || "$configured_data_dir" == "~" || "$configured_data_dir" == ~/* ]]; then
+      resolved_data_dir="$(expand_home_path "$configured_data_dir")"
+    else
+      resolved_data_dir="$worktree/$configured_data_dir"
+    fi
+
+    WORKTREE_OPENCODE_DB_FILE_HOST="$resolved_data_dir/opencode.db"
+  fi
+
+  mkdir -p "$(dirname "$WORKTREE_OPENCODE_DB_FILE_HOST")"
+  touch "$WORKTREE_OPENCODE_DB_FILE_HOST"
+
+  WORKTREE_OPENCODE_DB_WAL_FILE_HOST="${WORKTREE_OPENCODE_DB_FILE_HOST}-wal"
+  WORKTREE_OPENCODE_DB_SHM_FILE_HOST="${WORKTREE_OPENCODE_DB_FILE_HOST}-shm"
+  touch "$WORKTREE_OPENCODE_DB_WAL_FILE_HOST" "$WORKTREE_OPENCODE_DB_SHM_FILE_HOST"
+}
+
+resolve_local_opencode_binary() {
+  local use_local="${OCX_USE_LOCAL_OPENCODE:-0}"
+  local requested_bin="${OCX_LOCAL_OPENCODE_BIN:-}"
+  local docker_arch="${DOCKER_ARCH:-}"
+  local candidate=""
+  local candidate_path=""
+  local candidates=()
+
+  LOCAL_OPENCODE_BIN=""
+
+  if [[ "$use_local" == "0" ]]; then
+    return
+  fi
+
+  if [[ -n "$requested_bin" ]]; then
+    requested_bin="$(expand_home_path "$requested_bin")"
+    if [[ -x "$requested_bin" ]]; then
+      LOCAL_OPENCODE_BIN="$requested_bin"
+    else
+      echo "Warning: OCX_LOCAL_OPENCODE_BIN is not executable: $requested_bin" >&2
+    fi
+    return
+  fi
+
+  if [[ "$use_local" == "1" && ! -d "$LOCAL_OPENCODE_DIST" ]]; then
+    echo "Warning: OCX_LOCAL_OPENCODE_DIST does not exist: $LOCAL_OPENCODE_DIST" >&2
+    return
+  fi
+
+  if [[ ! -d "$LOCAL_OPENCODE_DIST" ]]; then
+    return
+  fi
+
+  if [[ -z "$docker_arch" ]]; then
+    docker_arch="$(uname -m)"
+  fi
+
+  case "$docker_arch" in
+    arm64|aarch64)
+      candidates=(
+        "opencode-linux-arm64"
+        "opencode-linux-arm64-musl"
+      )
+      ;;
+    amd64|x86_64)
+      candidates=(
+        "opencode-linux-x64"
+        "opencode-linux-x64-baseline"
+        "opencode-linux-x64-musl"
+        "opencode-linux-x64-baseline-musl"
+      )
+      ;;
+    *)
+      candidates=(
+        "opencode-linux-arm64"
+        "opencode-linux-x64"
+      )
+      ;;
+  esac
+
+  for candidate in "${candidates[@]}"; do
+    candidate_path="$LOCAL_OPENCODE_DIST/$candidate/bin/opencode"
+    if [[ -x "$candidate_path" ]]; then
+      LOCAL_OPENCODE_BIN="$candidate_path"
+      return
+    fi
+  done
+
+  if [[ "$use_local" == "1" ]]; then
+    echo "Warning: no matching local opencode binary found in $LOCAL_OPENCODE_DIST" >&2
+  fi
+}
+
+apply_local_opencode_mount() {
+  if [[ -z "$LOCAL_OPENCODE_BIN" ]]; then
+    return
+  fi
+
+  args+=(
+    -v "$LOCAL_OPENCODE_BIN:$LOCAL_OPENCODE_CONTAINER_BIN:ro"
+    --entrypoint "$LOCAL_OPENCODE_CONTAINER_BIN"
+  )
+}
 
 help() {
   cat <<'EOF'
@@ -66,6 +265,13 @@ Environment (optional):
   OCX_PLAYWRIGHT_CACHE_MOUNT 1/0 (default: 0; mount host Playwright cache)
   OCX_CLIPBOARD_IMAGE_MOUNT 1/0 (default: 1; mount clipboard image directory)
   OCX_CLIPBOARD_IMAGE_DIR Host clipboard image dir (default: /tmp/clipboard-images)
+  OCX_OPENCODE_DATA_DIR Directory for worktree DB file (default: <worktree>/opencode-data)
+  OCX_OPENCODE_DB_PATH Explicit path for worktree DB file (default: <resolved-data-dir>/opencode.db)
+  OCX_SHARED_OPENCODE_DATA_DIR Shared opencode data dir (default: ~/.local/share/opencode)
+  OCX_GIT_COMMON_RW   1/0 (default: 1; allow writes to shared .git store)
+  OCX_USE_LOCAL_OPENCODE 1/0/auto (default: 0; set 1/auto to use local build)
+  OCX_LOCAL_OPENCODE_DIST Path to opencode dist root
+  OCX_LOCAL_OPENCODE_BIN  Path to an explicit opencode binary
 EOF
 }
 
@@ -96,10 +302,12 @@ ensure_runtime_setup() {
 
   check_docker
   DOCKER_OS="$(docker info --format '{{.OperatingSystem}}' 2>/dev/null || true)"
+  DOCKER_ARCH="$(docker info --format '{{.Architecture}}' 2>/dev/null || true)"
   ensure_image
+  resolve_local_opencode_binary
 
   mkdir -p \
-    "$HOME/.local/share/opencode" \
+    "$SHARED_OPENCODE_DATA_DIR" \
     "$HOME/.cache/opencode" \
     "$HOME/.cache/ms-playwright" \
     "$HOME/.local/share/agent-browser"
@@ -152,6 +360,10 @@ prepare_node_modules_volume() {
 apply_common_mounts_and_env() {
   local worktree="$1"
   local node_modules_volume=""
+  local git_common_mode="ro"
+
+  detect_linked_worktree_git_dirs "$worktree"
+  resolve_worktree_opencode_db_file "$worktree"
 
   args+=(
     --workdir /workspace
@@ -162,15 +374,32 @@ apply_common_mounts_and_env() {
     -e AGENT_BROWSER_HOME=/home/opencode/.local/share/agent-browser
     -e PLAYWRIGHT_BROWSERS_PATH=/home/opencode/.cache/ms-playwright
     -e CLIPBOARD_IMAGE_DIR="$CLIPBOARD_IMAGE_DIR"
-    -e GIT_CONFIG_COUNT=1
+    -e GIT_CONFIG_COUNT=2
     -e GIT_CONFIG_KEY_0=safe.directory
     -e GIT_CONFIG_VALUE_0=/workspace
+    -e GIT_CONFIG_KEY_1=safe.directory
+    -e GIT_CONFIG_VALUE_1="$worktree"
     -v "$worktree:/workspace"
+    -v "$worktree:$worktree"
     -v "$CONFIG_SOURCE:/home/opencode/.config/opencode"
-    -v "$HOME/.local/share/opencode:/home/opencode/.local/share/opencode"
+    -v "$SHARED_OPENCODE_DATA_DIR:/home/opencode/.local/share/opencode"
+    -v "$WORKTREE_OPENCODE_DB_FILE_HOST:/home/opencode/.local/share/opencode/opencode.db"
+    -v "$WORKTREE_OPENCODE_DB_WAL_FILE_HOST:/home/opencode/.local/share/opencode/opencode.db-wal"
+    -v "$WORKTREE_OPENCODE_DB_SHM_FILE_HOST:/home/opencode/.local/share/opencode/opencode.db-shm"
     -v "$HOME/.cache/opencode:/home/opencode/.cache/opencode"
     -v "$HOME/.local/share/agent-browser:/home/opencode/.local/share/agent-browser"
   )
+
+  if [[ -n "$WORKTREE_GITDIR_HOST" && -n "$WORKTREE_GIT_COMMON_DIR_HOST" ]]; then
+    if [[ "${OCX_GIT_COMMON_RW:-1}" == "1" ]]; then
+      git_common_mode="rw"
+    fi
+
+    args+=(
+      -v "$WORKTREE_GIT_COMMON_DIR_HOST:$WORKTREE_GIT_COMMON_DIR_HOST:$git_common_mode"
+      -v "$WORKTREE_GITDIR_HOST:$WORKTREE_GITDIR_HOST"
+    )
+  fi
 
   if [[ "${OCX_CLIPBOARD_IMAGE_MOUNT:-1}" == "1" ]]; then
     args+=(-v "$CLIPBOARD_IMAGE_DIR:$CLIPBOARD_IMAGE_DIR:ro")
@@ -322,6 +551,7 @@ start_serve() {
 
   apply_common_mounts_and_env "$worktree"
   apply_runtime_limits
+  apply_local_opencode_mount
 
   args+=("$IMAGE" "${serve_cmd[@]}")
 
@@ -397,10 +627,16 @@ apply_common_mounts_and_env "$WORKTREE"
 apply_runtime_limits
 
 if [[ "$MODE" == "shell" ]]; then
+  args+=(--entrypoint bash)
+else
+  apply_local_opencode_mount
+fi
+
+if [[ "$MODE" == "shell" ]]; then
   if [[ $# -gt 0 ]]; then
-    args+=("$IMAGE" bash -lc "$*")
+    args+=("$IMAGE" -lc "$*")
   else
-    args+=("$IMAGE" bash -l)
+    args+=("$IMAGE" -l)
   fi
 else
   args+=("$IMAGE")
