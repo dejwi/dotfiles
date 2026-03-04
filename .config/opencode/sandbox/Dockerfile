@@ -17,6 +17,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   unzip \
   xz-utils \
   zip \
+  lua5.1 \
+  luajit \
+  luarocks \
   build-essential \
   pkg-config \
   python3 \
@@ -50,7 +53,7 @@ RUN mkdir -p /opt/bun \
 # Rust toolchain (needed by Tauri projects).
 ENV CARGO_HOME=/opt/cargo
 ENV RUSTUP_HOME=/opt/rustup
-ENV PATH=/opt/cargo/bin:/opt/bun/bin:${PATH}
+ENV PATH=/opt/cargo/bin:/opt/bun/bin:/home/opencode/.local/bin:${PATH}
 
 RUN mkdir -p "${CARGO_HOME}" "${RUSTUP_HOME}" \
   && chmod -R 777 "${CARGO_HOME}" "${RUSTUP_HOME}" \
@@ -69,6 +72,7 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/home/opencode/.cache/ms-playwright
 RUN mkdir -p \
   /home/opencode/.config \
   /home/opencode/.local/share \
+  /home/opencode/.local/bin \
   /home/opencode/.cache \
   /home/opencode/.cache/ms-playwright \
   /home/opencode/.local/share/agent-browser \
@@ -77,6 +81,12 @@ RUN mkdir -p \
   && npx -y playwright@latest install-deps chromium \
   && AGENT_BROWSER_HOME=/home/opencode/.local/share/agent-browser PLAYWRIGHT_BROWSERS_PATH=/home/opencode/.cache/ms-playwright agent-browser install --with-deps \
   && npm cache clean --force
+
+# Neovim nightly managed by bob.
+RUN cargo install --locked bob-nvim \
+  && bob install nightly \
+  && bob use nightly \
+  && ln -sf /home/opencode/.local/share/bob/nvim-bin/nvim /usr/local/bin/nvim
 
 RUN mkdir -p \
   /workspace \

@@ -199,3 +199,7 @@ alias ocxb="ocx build"
 # bun
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
+
+# alias opencode="/Users/dawid/projects/opencode/packages/opencode/dist/opencode-darwin-arm64/bin/opencode"
+
+
