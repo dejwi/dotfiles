@@ -202,4 +202,8 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 
 # alias opencode="/Users/dawid/projects/opencode/packages/opencode/dist/opencode-darwin-arm64/bin/opencode"
 
+export PATH=/opt/homebrew/opt/llvm/bin:$PATH
+export LDFLAGS="-L/opt/homebrew/opt/llvm/lib"
+export CPPFLAGS="-I/opt/homebrew/opt/llvm/include"
 
+export CMAKE_PREFIX_PATH="/opt/homebrew/opt/llvm"

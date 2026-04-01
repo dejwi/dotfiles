@@ -162,7 +162,7 @@ vim.lsp.enable({
 	"tailwindcss",
 	-- "emmet_ls",
 	-- "prismals",
-	-- "pyright",
+	"pyright",
 	"clangd",
 	-- "dockerls",
 	-- "docker_compose_language_service",
